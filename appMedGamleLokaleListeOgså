@@ -1,0 +1,205 @@
+import { app, database } from "./firebase";
+import { collection, addDoc } from "firebase/firestore";
+import { useCollection } from "react-firebase-hooks/firestore";
+import React, { useState } from "react";
+import {
+  StyleSheet,
+  Text,
+  View,
+  Button,
+  TextInput,
+  FlatList,
+} from "react-native";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+
+export default function App() {
+  const Stack = createNativeStackNavigator();
+
+  // alert(JSON.stringify(app, null, 4)); Viser bare om vi har forbindelse til databasen
+
+  return (
+    //     You define two screens: "My Notes" and "Create New Note" using Stack.Screen.
+    //     For each screen, you render a component (HomePage and AddNotePage, respectively) and pass navigation props.
+    //
+    <NavigationContainer>
+      <Stack.Navigator>
+        <Stack.Screen name="My Notes">
+          {(props) => <HomePage {...props} />}
+        </Stack.Screen>
+        <Stack.Screen name="Create New Note">
+          {(props) => (
+            <AddNotePage
+              {...props}
+              onNoteAdded={(newNote) => {
+                // Handle note added in parent component
+                props.route.params?.onNoteAdded(newNote);
+              }}
+            />
+          )}
+        </Stack.Screen>
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
+
+const HomePage = ({ navigation, route }) => {
+  // Step 1: Define state for the list of notes in the parent component
+  const [notes, setNotes] = useState([]);
+
+
+  // kode der laver permanent forbindelse til firebase, hvor vi kan få vores values, loading og errors fra vores "Notes" collection
+  // useCollection er en metode vi har importeret, der tager en collection som parameter.
+  const [values, loading, error] = useCollection(collection(database, "Notes"));
+
+ 
+  // The map function iterates through all the document snapshots in the docs array and creates an array of these transformed objects
+  // { ...doc.data(), id: doc.id }: This line creates a new object by spreading the properties of doc.data() (the document's data) and adding an extra property id, 
+  // which is set to the id of the document. This effectively combines the document's data with an additional id property.
+  
+  const data = values?.docs.map((doc) => ({
+    ...doc.data(),
+    id: doc.id,
+  }));
+
+  // You have a function (handleNoteAdded) to handle adding notes.
+  const handleNoteAdded = (newNote) => {
+    setNotes([...notes, newNote]);
+  };
+
+  // You have a button to navigate to the "Create New Note" screen and pass the handleNoteAdded function as a prop.
+  function navigate() {
+    navigation.navigate("Create New Note", {
+      onNoteAdded: handleNoteAdded,
+    });
+  }
+
+   const handleDeleteNote = async (id) => {
+    try {
+      const notesCollectionRef = collection(database, "Notes");
+      await deleteDoc(doc(notesCollectionRef, id));
+      // Update the data after deletion
+      fetchData();
+      console.log("Note deleted successfully");
+    } catch (error) {
+      console.error("Error deleting note:", error);
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      {loading ? (
+        <Text>Loading...</Text>
+      ) : (
+        <FlatList
+          data={data}
+          renderItem={({ item }) => (
+            <View style={styles.noteContainer}>
+              <Text style={styles.noteHeader}>{item.header}</Text>
+              <Button title='Delete'></Button>
+            </View>
+          )}
+          keyExtractor={(item) => item.id}
+        />
+      )}
+
+      <Button
+        title="ADD NEW NOTE"
+        onPress={() => navigation.navigate("Create New Note")}
+      />
+    </View>
+  );
+};
+
+const AddNotePage = ({ navigation, route }) => {
+  const [noteHeader, setNoteHeader] = useState("");
+  const [noteBody, setNoteBody] = useState("");
+
+  function buttonHandler() {
+    // Create a new note object
+    const newNote = {
+      key: Date.now().toString(), // Use a unique key (timestamp) for each note
+      header: noteHeader,
+      body: noteBody,
+    };
+
+    // When a note is added, you pass it back to the parent component (HomePage) using a callback function (onNoteAdded).
+    route.params?.onNoteAdded(newNote);
+
+    // Clear the input fields
+    setNoteHeader("");
+    setNoteBody("");
+
+    // Add the new note to your Firebase Firestore collection
+    const notesCollectionRef = collection(database, "Notes"); // Vi siger den skal gemme i vores database, under collection "Notes".
+    addDoc(notesCollectionRef, newNote) // vi adder et nyt document til vores collection.
+      .then(() => {
+        console.log("New note added to Firestore:", newNote);
+      })
+      .catch((error) => {
+        console.error("Error adding new note to Firestore:", error);
+      });
+
+    // Navigate back to the homepage
+    navigation.goBack();
+  }
+
+  return (
+    <View style={styles.container}>
+      <TextInput
+        onChangeText={(noteHeader) => setNoteHeader(noteHeader)}
+        style={styles.textInputHeader}
+        placeholder="Note overskrift"
+      ></TextInput>
+
+      <TextInput
+        onChangeText={(noteBody) => setNoteBody(noteBody)}
+        style={{ ...styles.textInputBody }}
+        placeholder="Skriv din noter her"
+        multiline={true}
+      ></TextInput>
+
+      <Button title="Add Note" onPress={buttonHandler}></Button>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: "#fff",
+    padding: 10,
+    flex: 1,
+    justifyContent: "flex-start",
+    alignItems: "left",
+  },
+  noteContainer: {
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    padding: 10,
+  },
+  noteHeader: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  textInputHeader: {
+    borderRadius: 10,
+    textAlignVertical: "top",
+    backgroundColor: "#ECECEC",
+    fontSize: 16,
+    color: "#333",
+    padding: 10,
+    margin: 10,
+    height: 40, // Adjust the height to make it smaller
+  },
+  textInputBody: {
+    borderRadius: 10,
+    textAlignVertical: "top",
+    backgroundColor: "#ECECEC",
+    fontSize: 16,
+    color: "#333",
+    padding: 10,
+    margin: 10,
+    height: 200,
+  },
+});

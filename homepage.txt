@@ -1,0 +1,69 @@
+import { StatusBar } from "expo-status-bar";
+import {
+  StyleSheet,
+  Text,
+  View,
+  Button,
+  TextInput,
+  FlatList,
+} from "react-native";
+import { useState } from "react";
+import { NavigationContainer } from "@react-navigation/native"; // npm install @react-navigation/native
+import { createNativeStackNavigator } from "@react-navigation/native-stack"; // npm install @react-navigation/native-stack
+
+const HomePage = ({ navigation, route }) => {
+  const [notes, setNotes] = useState([]);
+
+  function navigate() {
+    navigation.navigate("AddNotePage");
+  }
+
+  return (
+    <View style={styles.container}>
+      <Button title="add new notes" onPress={navigate}></Button>
+
+      <FlatList
+        data={notes}
+        renderItem={({ item }) => <Text>{item.header}</Text>}
+      />
+
+      <StatusBar style="auto" />
+    </View>
+  );
+};
+
+export default HomePage; 
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: "#fff",
+    padding: 10,
+    flex: 1,
+    //flexDirection: 'row', // default er 'column', dvs flex direction nu er horizontalt. Så bliver alignItems den der bestemmer vertikalt, og justifyContent bestemmer horizontalt.
+    justifyContent: "flex-start", // Align all items (fx center them) in the flex direction, in this case flex direction is vertical (usually vertical as standard in mobile apps).
+    // can use flex-start to start in the top
+    alignItems: "left", // align all items like justifyContent, but horizontally.
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "600",
+    color: "blue",
+  },
+  textInputHeader: {
+    borderRadius: 10, // Adjust the radius for rounded corners
+    backgroundColor: "#fff", // Background color of the input
+    fontSize: 16,
+    color: "#333", // Text color
+    padding: 10,
+    margin: 10,
+  },
+  textInputBody: {
+    borderRadius: 10, // Adjust the radius for rounded corners
+    backgroundColor: "#fff", // Background color of the input
+    fontSize: 16,
+    color: "#333", // Text color
+    padding: 10,
+    margin: 10,
+    height: 200,
+  },
+});

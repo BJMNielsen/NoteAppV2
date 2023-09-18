@@ -1,0 +1,120 @@
+import { StatusBar } from "expo-status-bar";
+import {
+  StyleSheet,
+  Text,
+  View,
+  Button,
+  TextInput,
+  FlatList,
+} from "react-native";
+import { useState } from "react";
+import { NavigationContainer } from "@react-navigation/native"; // npm install @react-navigation/native
+import { createNativeStackNavigator } from "@react-navigation/native-stack"; // npm install @react-navigation/native-stack
+
+export default function App() {
+  const Stack = createNativeStackNavigator();
+  return (
+    <NavigationContainer>
+      <Stack.Navigator>
+        <Stack.Screen name="My Notes" component={HomePage} />
+
+        <Stack.Screen name="AddNotePage" component={AddNotePage} />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
+
+const HomePage = ({ navigation, route }) => {
+  const [notes, setNotes] = useState([]); // State for the list of notes
+
+  function navigate(){
+    navigation.navigate('AddNotePage')
+  }
+  return (
+    <View style={styles.container}>
+      <Button title="add new note" onPress={navigate}></Button>
+
+      <FlatList
+        data={notes}
+        renderItem={({ item }) => <Text>{item.header}</Text>} // Display the header property of each note
+      />
+
+      <StatusBar style="auto" />
+    </View>
+  );
+};
+
+const AddNotePage = ({ navigation, route }) => {
+  const [noteHeader, setNoteHeader] = useState("");
+  const [noteBody, setNoteBody] = useState("");
+
+  function buttonHandler() {
+    // Create a new note object
+    const newNote = {
+      key: notes.length.toString(),
+      header: noteHeader,
+      body: noteBody,
+    };
+
+    // Add the new note to the list of notes
+    setNotes([...notes, newNote]);
+
+    // Clear the input fields
+    setNoteHeader("");
+    setNoteBody("");
+  }
+
+  return (
+    <View style={styles.container}>
+      <TextInput
+        onChangeText={(noteHeader) => setNoteHeader(noteHeader)}
+        style={styles.textInputHeader}
+        placeholder="Note overskrift"
+      ></TextInput>
+
+      <TextInput
+        onChangeText={(noteBody) => setNoteBody(noteBody)}
+        style={{ ...styles.textInputBody }}
+        placeholder="Skriv din noter her"
+        multiline={true}
+      ></TextInput>
+
+      <Button title="Add Note" onPress={buttonHandler}></Button>
+      <StatusBar style="auto" />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: "#fff",
+    padding: 10,
+    flex: 1,
+    //flexDirection: 'row', // default er 'column', dvs flex direction nu er horizontalt. Så bliver alignItems den der bestemmer vertikalt, og justifyContent bestemmer horizontalt.
+    justifyContent: "flex-start", // Align all items (fx center them) in the flex direction, in this case flex direction is vertical (usually vertical as standard in mobile apps).
+    // can use flex-start to start in the top
+    alignItems: "left", // align all items like justifyContent, but horizontally.
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "600",
+    color: "blue",
+  },
+  textInputHeader: {
+    borderRadius: 10, // Adjust the radius for rounded corners
+    backgroundColor: "#fff", // Background color of the input
+    fontSize: 16,
+    color: "#333", // Text color
+    padding: 10,
+    margin: 10,
+  },
+  textInputBody: {
+    borderRadius: 10, // Adjust the radius for rounded corners
+    backgroundColor: "#fff", // Background color of the input
+    fontSize: 16,
+    color: "#333", // Text color
+    padding: 10,
+    margin: 10,
+    height: 200,
+  },
+});
