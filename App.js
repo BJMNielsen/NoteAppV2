@@ -63,6 +63,14 @@ const HomePage = ({ navigation, route }) => {
   //local state variable to check the loading status
   const [loading, setLoading] = useState(true); // We initialize the loading state as true, indicating that data is being loaded initially.
 
+  const [backgroundColor, setBackgroundColor] = useState("#ffffff"); // Initial background color is white
+
+  const handleBackgroundColorChange = () => {
+    // Generate a random color using hex format
+    const randomColor = "#" + Math.floor(Math.random() * 16777215).toString(16);
+    setBackgroundColor(randomColor);
+  };
+
   // fetchData function fetches data from Firebase Firestore and updates the notesData state.
   // You can use getDocs to fetch the data and then use setNotesData to update the state.
   const fetchData = async () => {
@@ -103,14 +111,14 @@ const HomePage = ({ navigation, route }) => {
   // Define a function to handle the updated note
   const handleUpdatedNote = (updatedNote) => {
     // Check if an updated note was passed in the route
-    if (route.params?.updatedNote) {
+    if (updatedNote && updatedNote.id) {
       // Replace the updated note in the notesData state
       const updatedNoteIndex = notesData.findIndex(
-        (note) => note.id === route.params.updatedNote.id
+        (note) => note.id === updatedNote.id
       );
       if (updatedNoteIndex !== -1) {
         const updatedNotesData = [...notesData];
-        updatedNotesData[updatedNoteIndex] = route.params.updatedNote;
+        updatedNotesData[updatedNoteIndex] = updatedNote;
         setNotesData(updatedNotesData);
       }
     }
@@ -139,7 +147,15 @@ const HomePage = ({ navigation, route }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor }]}>
+      <TouchableOpacity
+        onPress={handleBackgroundColorChange}
+        style={styles.colorChangeButton}
+      >
+        <Text style={styles.colorChangeButtonText}>
+          Change Background Color
+        </Text>
+      </TouchableOpacity>
       <TouchableOpacity
         onPress={() =>
           navigation.navigate("Create New Note", { onNoteAdded: handleAddNote })
@@ -159,10 +175,16 @@ const HomePage = ({ navigation, route }) => {
             return (
               <View style={styles.noteContainer}>
                 <TouchableOpacity
-                  onPress={() =>
-                    navigation.navigate("Note Details", { note: item }) // vi giver item videre til note details siden, og kalder den note.
-                    
-                  }
+                  onPress={() => {
+                    if (item.id) {
+                      navigation.navigate("Note Details", {
+                        noteId: item.id,
+                        note: item,
+                      });
+                    } else {
+                      console.error("Invalid item.id:", item.id);
+                    }
+                  }}
                 >
                   <Text style={styles.noteHeader}>{item.header}</Text>
                 </TouchableOpacity>
@@ -181,7 +203,6 @@ const HomePage = ({ navigation, route }) => {
           }}
         />
       )}
-
       <Button
         title="ADD NEW NOTE"
         onPress={() =>
@@ -207,9 +228,7 @@ const AddNotePage = ({ navigation, route }) => {
     };
 
     // When a note is added, you pass it back to the parent component (HomePage) using a callback function (onNoteAdded).
-    //route.params?.onNoteAdded(newNote);
-
-    // Call the onNoteAdded callback to pass the new note back to HomePage
+    // Update the noteId to use newNote.key
     route.params?.onNoteAdded(newNote);
 
     // Clear the input fields
@@ -217,8 +236,12 @@ const AddNotePage = ({ navigation, route }) => {
     setNoteBody("");
 
     // Add the new note to your Firebase Firestore collection
-    const notesCollectionRef = collection(database, "Notes"); // Vi siger den skal gemme i vores database, under collection "Notes".
-    addDoc(notesCollectionRef, newNote) // vi adder et nyt document til vores collection.
+    const notesCollectionRef = collection(database, "Notes");
+    // Set the Firestore document ID (id) to newNote.key
+    addDoc(notesCollectionRef, {
+      ...newNote,
+      id: newNote.key, // Use the key as the Firestore document ID
+    })
       .then(() => {
         console.log("New note added to Firestore:", newNote);
       })
@@ -257,6 +280,17 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "flex-start",
     alignItems: "left",
+  },
+  colorChangeButton: {
+    backgroundColor: "#6495ED",
+    padding: 10,
+    borderRadius: 5,
+    alignSelf: "center",
+    margin: 10,
+  },
+  colorChangeButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
   },
   noteContainer: {
     marginBottom: 10,

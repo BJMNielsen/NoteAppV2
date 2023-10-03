@@ -1,5 +1,3 @@
-// NoteDetails.js
-
 import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, Button, StyleSheet, Image } from "react-native";
 import { updateDoc, doc } from "firebase/firestore";
@@ -9,15 +7,21 @@ import { storage } from "./firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const NoteDetails = ({ route, navigation }) => {
+  console.log("Note ID received:", noteId); // Add this line to log the received noteId
   const [note, setNote] = useState(route.params.note);
   const [isEditing, setIsEditing] = useState(false);
   const [imagePath, setImagePath] = useState(null);
+  const { noteId } = route.params;
+
+  useEffect(() => {
+    downloadImage(); // Download the image when the component mounts (if imagePath exists)
+  }, []);
 
   // Function to handle saving the note
   const handleSaveNote = async () => {
     try {
       // Update the note in Firebase Firestore
-      const noteRef = doc(database, "Notes", note.id);
+      const noteRef = doc(database, "Notes", noteId); // Use noteId here
       await updateDoc(noteRef, {
         header: note.header,
         body: note.body,
@@ -45,8 +49,6 @@ const NoteDetails = ({ route, navigation }) => {
       });
       if (!result.cancelled) {
         setImagePath(result.assets[0].uri);
-        // setNote({ ...note, imagePath: result.uri });
-        // downloadImage(result.uri); // Download the image immediately
       }
     } catch (error) {
       console.error("Error picking image:", error);
@@ -57,8 +59,8 @@ const NoteDetails = ({ route, navigation }) => {
     try {
       // Fetch the image data
       const resource = await fetch(imagePath);
-      const blob = await resource.blob(); //blob = binary large object
-      const storageReference = ref(storage, `${note.id}.jpg`);
+      const blob = await resource.blob();
+      const storageReference = ref(storage, `${noteId}.jpg`); // Use noteId here
       await uploadBytes(storageReference, blob);
       console.log("Image uploaded successfully");
     } catch (error) {
@@ -68,19 +70,12 @@ const NoteDetails = ({ route, navigation }) => {
 
   async function downloadImage() {
     try {
-        const url = await getDownloadURL(ref(storage, `${note.id}.jpg`));
-        setImagePath(url);
+      const url = await getDownloadURL(ref(storage, `${noteId}.jpg`)); // Use noteId here
+      setImagePath(url);
     } catch (error) {
       console.error("Error downloading image:", error);
     }
   }
-
-  /*
-  useEffect(() => {
-    downloadImage(); // Download the image when the component mounts (if imagePath exists)
-  }, []);
-*/
-  downloadImage();
 
   return (
     <View style={styles.container}>
@@ -138,7 +133,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   buttonContainer: {
-    marginTop: 10, // Add some margin-top to create spacing between buttons
+    marginTop: 10,
   },
 });
 
